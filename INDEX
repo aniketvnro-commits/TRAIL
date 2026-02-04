@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>India Food Court | SOP 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #10b981;
+            --neon-amber: #f59e0b;
+            --deep-indigo: #0f172a;
+            --emerald-vibrant: #059669;
+            --space-black: #020617;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--space-black);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* --- BACKGROUND ENGINE --- */
+        .nebula-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; overflow: hidden; background: #020617;
+        }
+
+        .nebula-grid {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(16, 185, 129, 0.05) 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.3;
+        }
+
+        .nebula-cloud {
+            position: absolute; border-radius: 50%; filter: blur(120px);
+            opacity: 0.12; mix-blend-mode: screen; pointer-events: none;
+            will-change: transform;
+        }
+
+        .cloud-1 {
+            width: 100vw; height: 100vh;
+            background: radial-gradient(circle, var(--emerald-vibrant) 0%, transparent 70%);
+            top: -20%; left: -10%;
+            animation: drift 45s infinite alternate linear;
+        }
+
+        .cloud-2 {
+            width: 90vw; height: 90vh;
+            background: radial-gradient(circle, #1e3a8a 0%, transparent 70%);
+            bottom: -20%; right: -5%;
+            animation: drift 40s infinite alternate-reverse linear;
+        }
+
+        @keyframes drift {
+            from { transform: translate3d(-2%, -2%, 0) scale(1); }
+            to { transform: translate3d(4%, 4%, 0) scale(1.15); }
+        }
+
+        /* --- UI COMPONENTS --- */
+        .glass {
+            background: rgba(255, 255, 255, 0.01);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .tech-card {
+            position: relative;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .tech-card::before, .tech-card::after {
+            content: ''; position: absolute; width: 8px; height: 8px;
+            border-color: var(--neon-green); opacity: 0.1; transition: all 0.3s ease;
+        }
+        .tech-card::before { top: 12px; left: 12px; border-top: 1.5px solid; border-left: 1.5px solid; }
+        .tech-card::after { bottom: 12px; right: 12px; border-bottom: 1.5px solid; border-right: 1.5px solid; }
+        .tech-card:hover { border-color: rgba(16, 185, 129, 0.4); background: rgba(255, 255, 255, 0.03); }
+        .tech-card:hover::before, .tech-card:hover::after { opacity: 1; width: 24px; height: 24px; }
+
+        .neon-text {
+            color: var(--neon-green);
+            text-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
+
+        canvas { position: absolute; top: 0; left: 0; z-index: 0; pointer-events: none; }
+
+        .hero-title {
+            background: linear-gradient(135deg, #fff 60%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.05em;
+        }
+
+        /* --- CAROUSEL REFINED --- */
+        .carousel-wrapper { height: 120px; overflow: hidden; position: relative; }
+        .carousel-container { display: flex; flex-direction: column; gap: 1rem; transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1); }
+        .carousel-item { flex: 0 0 120px; width: 100%; transition: all 0.5s ease; }
+        .carousel-item.active { opacity: 1; transform: scale(1); }
+        .carousel-item.inactive { opacity: 0.2; transform: scale(0.95); }
+
+        .tab-btn.active {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.1);
+        }
+
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(12px); z-index: 200;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content { transform: scale(0.92); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+    </style>
+</head>
+<body class="bg-[#020617] selection:bg-emerald-500/30">
+
+    <div class="nebula-container">
+        <div class="nebula-grid"></div>
+        <canvas id="starfield"></canvas>
+        <div class="nebula-cloud cloud-1" id="neb-1"></div>
+        <div class="nebula-cloud cloud-2" id="neb-2"></div>
+    </div>
+
+    <!-- Protocol Modal -->
+    <div id="protocol-modal" class="modal-overlay">
+        <div id="modal-container" class="modal-content glass p-1 rounded-[3.5rem] border border-emerald-500/30 w-full max-w-2xl mx-6 overflow-hidden">
+            <div class="bg-slate-950/40 p-10 rounded-[3.3rem]">
+                <div class="flex justify-between items-start mb-12">
+                    <div>
+                        <div id="modal-sub-label" class="text-[10px] mono text-emerald-500/60 tracking-[0.4em] mb-2 uppercase font-bold text-nowrap">SYSTEM_PROTOCOL_ALPHA</div>
+                        <h2 class="text-4xl font-black uppercase tracking-tight" id="modal-phase-title">The Fresh Start</h2>
+                    </div>
+                    <button onclick="closeModal()" class="p-3 glass rounded-full hover:bg-white/10 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                    <button class="p-8 rounded-[2.5rem] glass border border-white/5 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all text-left group flex flex-col gap-5">
+                        <div class="protocol-icon-bg w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                            <svg class="protocol-icon-1" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--neon-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-black uppercase tracking-tight check-title-1">Production CHECK</div>
+                            <p class="text-[11px] mono text-slate-400 uppercase tracking-widest mt-2 check-desc-1">Verify kitchen readiness & output specs</p>
+                        </div>
+                    </button>
+
+                    <button class="p-8 rounded-[2.5rem] glass border border-white/5 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all text-left group flex flex-col gap-5">
+                        <div class="protocol-icon-bg w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                            <svg class="protocol-icon-2" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--neon-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-black uppercase tracking-tight check-title-2">Stall CHECK</div>
+                            <p class="text-[11px] mono text-slate-400 uppercase tracking-widest mt-2 check-desc-2">Audit individual vendor modules</p>
+                        </div>
+                    </button>
+                </div>
+
+                <div class="text-center pt-4 opacity-40">
+                    <p class="text-[9px] mono text-slate-500 uppercase tracking-[0.5em]">Auth_Node: IFC_MAIN_FRAME // PORT_SEC_01</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Toggle -->
+    <div id="sound-btn" class="fixed bottom-8 right-8 z-[100] cursor-pointer group">
+        <div class="glass p-5 rounded-full border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-300">
+            <svg id="sound-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <line x1="23" y1="9" x2="17" y2="15" id="mute-line" style="display: none;"></line>
+                <line x1="17" y1="9" x2="23" y2="15" id="mute-line-2" style="display: none;"></line>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="fixed top-0 w-full z-50 px-8 py-10">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <!-- BRANDING WITH NEW LOGO -->
+            <div class="flex items-center gap-5 group cursor-pointer">
+                <div class="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-500/30 group-hover:border-emerald-500 transition-all duration-500 shadow-[0_0_25px_rgba(16,185,129,0.15)] overflow-hidden p-1">
+                    <img src="https://aniketvermawork-beep.github.io/logo/image.png" alt="IFC Logo" class="w-full h-full object-contain" onerror="this.style.display='none'">
+                </div>
+                <div>
+                    <span class="block text-xl font-black tracking-[0.3em] uppercase leading-none text-white">INDIA FOOD COURT</span>
+                    <span class="block text-[9px] mono text-emerald-500/50 tracking-[0.6em] mt-2 uppercase">SECURE_NODE_04_GGM</span>
+                </div>
+            </div>
+            <div class="hidden md:flex items-center gap-8">
+                <div class="flex items-center gap-3 bg-emerald-500/5 px-4 py-2 rounded-full border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]"></span>
+                    <span class="text-[10px] mono text-emerald-400 font-bold uppercase tracking-widest">System_Live</span>
+                </div>
+                <div class="text-[10px] mono text-slate-500 tracking-[0.2em] opacity-80 uppercase">
+                    SECTOR_V // 28.4595° N
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative pt-32 pb-32 px-8 z-10">
+        <div class="max-w-7xl mx-auto">
+            
+            <!-- STATUS BADGE -->
+            <div class="flex justify-center mb-20">
+                <div class="inline-flex items-center gap-4 px-6 py-2.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-[11px] font-bold uppercase tracking-[0.45em] mono shadow-[0_0_30px_rgba(16,185,129,0.08)]">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    PHASE_2026_INITIALIZING
+                </div>
+            </div>
+
+            <!-- HERO GRID -->
+            <div class="grid grid-cols-1 lg:grid-cols-[70%_30%] gap-8 items-start mb-24">
+                <div class="text-center lg:text-left">
+                    <h1 class="hero-title text-6xl md:text-8xl xl:text-[9.5rem] font-black tracking-tighter leading-[0.9] mb-6 uppercase">
+                        Operational <br/><span class="text-slate-300">Framework</span>
+                    </h1>
+                    <p class="text-xl md:text-2xl text-slate-400 leading-relaxed font-light tracking-[0.2em] uppercase mt-10 opacity-70">
+                        Initiating <span class="text-white font-bold">IFC GURUGRAM 2026</span> Standard Protocol
+                    </p>
+                </div>
+
+                <!-- HUD CAROUSEL -->
+                <div class="relative group mt-6 lg:mt-12">
+                    <div class="absolute -inset-12 bg-emerald-500/5 blur-[80px] rounded-full group-hover:bg-emerald-500/10 transition-colors duration-1000"></div>
+                    <div class="relative">
+                        <div class="carousel-wrapper" id="carousel-wrap">
+                            <div class="carousel-container" id="dash-carousel">
+                                <div class="carousel-item p-4 text-left flex flex-col justify-center border-l-2 border-emerald-500/40 pl-8">
+                                    <div class="text-[9px] text-emerald-500/60 mono mb-2 tracking-[0.4em] uppercase font-bold">CORE_LOAD</div>
+                                    <div class="text-4xl font-black neon-text mb-5 uppercase">Ready</div>
+                                    <div class="w-full max-w-[140px] bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                        <div class="bg-emerald-500 h-full w-full shadow-[0_0_15px_#10b981]"></div>
+                                    </div>
+                                </div>
+                                <div class="carousel-item p-4 text-left flex flex-col justify-center border-l-2 border-white/10 pl-8">
+                                    <div class="text-[9px] text-slate-500 mono mb-2 tracking-[0.4em] uppercase font-bold">TARGET</div>
+                                    <div class="text-4xl font-black text-white mb-2 tracking-tighter">2026</div>
+                                    <div class="text-[10px] text-emerald-400 mono uppercase tracking-widest font-bold">▲ Global Deployment</div>
+                                </div>
+                                <div class="carousel-item p-4 text-left flex flex-col justify-center border-l-2 border-white/10 pl-8">
+                                    <div class="text-[9px] text-slate-500 mono mb-2 tracking-[0.4em] uppercase font-bold">STATION</div>
+                                    <div class="text-4xl font-black text-white mb-4">GGM_05</div>
+                                    <div class="flex gap-2 items-center">
+                                        <div class="w-2.5 h-2.5 bg-emerald-500 rounded-sm animate-pulse"></div>
+                                        <span class="mono text-[10px] text-slate-400 uppercase tracking-widest font-bold">Encrypted_Node</span>
+                                    </div>
+                                </div>
+                                <div class="carousel-item p-4 text-left flex flex-col justify-center border-l-2 border-white/10 pl-8">
+                                    <div class="text-[9px] text-slate-500 mono mb-2 tracking-[0.4em] uppercase font-bold">MENTORS</div>
+                                    <div class="text-4xl font-black text-white mb-2">39</div>
+                                    <div class="text-[10px] text-emerald-500 mono font-bold tracking-widest uppercase">▲ Verified Elite</div>
+                                </div>
+                                <div class="carousel-item p-4 text-left flex flex-col justify-center border-l-2 border-white/10 pl-8">
+                                    <div class="text-[9px] text-slate-500 mono mb-2 tracking-[0.4em] uppercase font-bold">PROFESSIONALS</div>
+                                    <div class="text-4xl font-black text-white mb-2">08</div>
+                                    <div class="text-[10px] text-amber-500/80 mono font-bold uppercase tracking-widest">▲ Primary Units</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INITIATE BUTTON -->
+            <div class="flex justify-center mb-32">
+                <button id="initiate-btn" class="group relative px-24 py-8 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-full transition-all duration-500 shadow-[0_25px_60px_rgba(16,185,129,0.25)] overflow-hidden hover:scale-105 active:scale-95">
+                    <span class="relative z-10 uppercase tracking-[0.4em] text-sm">Initiate SOP</span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-emerald-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+                </button>
+            </div>
+
+            <!-- DAILY SYNCHRONIZATION HUB -->
+            <div class="max-w-7xl mx-auto mb-48">
+                <div class="glass rounded-[3.5rem] overflow-hidden border border-white/10 p-3 relative tech-card">
+                    <div class="flex items-center justify-between px-10 py-7 border-b border-white/5 bg-white/5">
+                        <div class="flex items-center gap-4">
+                            <div class="w-3 h-3 bg-emerald-500 rounded-full shadow-[0_0_20px_#10b981]"></div>
+                            <h2 class="mono text-[11px] text-slate-200 tracking-[0.6em] uppercase font-black">Daily Synchronization Hub</h2>
+                        </div>
+                        <div class="mono text-[12px] text-emerald-400 font-bold tracking-widest" id="current-time-hud">--:--:--</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-8">
+                        <button onclick="switchTab(0)" class="tab-btn active p-8 rounded-[2.5rem] glass border border-white/5 flex flex-col items-center gap-3 group">
+                            <span class="text-xl font-black tracking-tight uppercase text-center leading-tight">The Fresh Start</span>
+                            <span class="mono text-[11px] tracking-[0.3em] text-slate-500 group-hover:text-emerald-400 font-bold uppercase">12:00 NOON</span>
+                        </button>
+                        <button onclick="switchTab(1)" class="tab-btn p-8 rounded-[2.5rem] glass border border-white/5 flex flex-col items-center gap-3 group">
+                            <span class="text-xl font-black tracking-tight uppercase text-center leading-tight">The Peak Hour</span>
+                            <span class="mono text-[11px] tracking-[0.3em] text-slate-500 group-hover:text-emerald-400 font-bold uppercase">06:00 PM</span>
+                        </button>
+                        <button onclick="switchTab(2)" class="tab-btn p-8 rounded-[2.5rem] glass border border-white/5 flex flex-col items-center gap-3 group">
+                            <span class="text-xl font-black tracking-tight uppercase text-center leading-tight">The Closing</span>
+                            <span class="mono text-[11px] tracking-[0.3em] text-slate-500 group-hover:text-emerald-400 font-bold uppercase">10:00 PM</span>
+                        </button>
+                        <button onclick="switchTab(3)" class="tab-btn p-8 rounded-[2.5rem] glass border border-white/5 flex flex-col items-center gap-3 group">
+                            <span class="text-xl font-black tracking-tight uppercase text-center leading-tight">The Feedback</span>
+                            <span class="mono text-[11px] tracking-[0.3em] text-slate-500 group-hover:text-emerald-400 font-bold uppercase">Anytime</span>
+                        </button>
+                    </div>
+
+                    <div class="p-14 text-center" id="sync-content">
+                        <div class="max-w-xl mx-auto">
+                            <div class="mb-12">
+                                <div class="text-[11px] mono text-emerald-500/60 tracking-[0.5em] mb-6 uppercase font-bold" id="sync-status">NODE_STATUS: READY_FOR_UPLINK</div>
+                                <h3 class="text-5xl font-black mb-6 uppercase tracking-tighter" id="sync-title">The Fresh Start</h3>
+                                <p class="text-base text-slate-400 tracking-widest uppercase leading-relaxed font-light" id="sync-desc">Mid-day cycle optimization and node readiness validation Required for 12:00 PM Cycle.</p>
+                            </div>
+                            <button onclick="handleExecuteSync()" id="execute-btn" class="group px-16 py-6 rounded-full border border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 font-black mono text-xs tracking-[0.3em] transition-all hover:scale-105 active:scale-95 uppercase">
+                                [ Execute Data Collection ]
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OPERATIONAL TEAM NODES -->
+            <div id="team-nodes" class="max-w-7xl mx-auto mt-44 scroll-mt-40">
+                <div class="flex items-center gap-10 mb-20">
+                    <div class="h-px flex-grow bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent"></div>
+                    <h2 class="mono text-sm text-slate-300 tracking-[1em] uppercase text-center font-black">
+                        Operational Nodes
+                    </h2>
+                    <div class="h-px flex-grow bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent"></div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 text-nowrap">
+                    <!-- Card 01 -->
+                    <div class="p-12 rounded-[3.5rem] glass tech-card team-card group overflow-hidden">
+                        <div class="absolute top-0 right-0 p-8 text-[8px] mono text-slate-800 font-black tracking-widest uppercase">0xPRD_01</div>
+                        <div class="text-[10px] text-emerald-500/50 mono mb-8 tracking-[0.5em] uppercase font-bold">NODE_01</div>
+                        <h3 class="text-3xl font-black mb-8 tracking-tighter group-hover:text-emerald-400 transition-colors leading-tight uppercase">PRODUCTION<br/>TEAM</h3>
+                        <div class="flex items-center justify-between border-t border-white/5 pt-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_15px_#10b981]"></div>
+                                <span class="mono text-[11px] text-emerald-500/60 uppercase tracking-[0.3em] font-bold">Active_State</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Card 02 -->
+                    <div class="p-12 rounded-[3.5rem] glass tech-card team-card group overflow-hidden">
+                        <div class="absolute top-0 right-0 p-8 text-[8px] mono text-slate-800 font-black tracking-widest uppercase">0xFIN_02</div>
+                        <div class="text-[10px] text-slate-500 mono mb-8 tracking-[0.5em] uppercase font-bold">NODE_02</div>
+                        <h3 class="text-3xl font-black mb-8 tracking-tighter group-hover:text-emerald-400 transition-colors leading-tight uppercase">BILLING<br/>TEAM</h3>
+                        <div class="flex items-center justify-between border-t border-white/5 pt-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-3 h-3 rounded-full bg-emerald-500/30"></div>
+                                <span class="mono text-[11px] text-slate-500 uppercase tracking-[0.3em] font-bold">Link_Secure</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Card 03 -->
+                    <div class="p-12 rounded-[3.5rem] glass tech-card team-card group overflow-hidden">
+                        <div class="absolute top-0 right-0 p-8 text-[8px] mono text-slate-800 font-black tracking-widest uppercase">0xOPS_03</div>
+                        <div class="text-[10px] text-slate-500 mono mb-8 tracking-[0.5em] uppercase font-bold">NODE_03</div>
+                        <h3 class="text-3xl font-black mb-8 tracking-tighter group-hover:text-emerald-400 transition-colors leading-tight uppercase">FLOOR<br/>TEAM</h3>
+                        <div class="flex items-center justify-between border-t border-white/5 pt-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-3 h-3 rounded-full bg-emerald-500/60 animate-pulse"></div>
+                                <span class="mono text-[11px] text-emerald-500/40 uppercase tracking-[0.3em] font-bold">Gnd_Ready</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Card 04 -->
+                    <div class="p-12 rounded-[3.5rem] glass tech-card team-card group overflow-hidden">
+                        <div class="absolute top-0 right-0 p-8 text-[8px] mono text-slate-800 font-black tracking-widest uppercase">0xRES_04</div>
+                        <div class="text-[10px] text-slate-500 mono mb-8 tracking-[0.5em] uppercase font-bold">NODE_04</div>
+                        <h3 class="text-3xl font-black mb-8 tracking-tighter group-hover:text-emerald-400 transition-colors leading-tight uppercase">GAS<br/>MANAGEMENT</h3>
+                        <div class="flex items-center justify-between border-t border-white/5 pt-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+                                <span class="mono text-[11px] text-emerald-500/50 uppercase tracking-[0.3em] font-bold">Flow_Opt</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Card 05 -->
+                    <div class="p-12 rounded-[3.5rem] glass tech-card team-card group overflow-hidden">
+                        <div class="absolute top-0 right-0 p-8 text-[8px] mono text-slate-800 font-black tracking-widest uppercase">0xAST_05</div>
+                        <div class="text-[10px] text-slate-500 mono mb-8 tracking-[0.5em] uppercase font-bold">NODE_05</div>
+                        <h3 class="text-3xl font-black mb-8 tracking-tighter group-hover:text-emerald-400 transition-colors leading-tight uppercase">INVENTORY<br/>TEAM</h3>
+                        <div class="flex items-center justify-between border-t border-white/5 pt-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-3 h-3 rounded-full bg-emerald-500/40"></div>
+                                <span class="mono text-[11px] text-emerald-500/40 uppercase tracking-[0.3em] font-bold">Stock_Sync</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Card 06 -->
+                    <div class="p-12 rounded-[3.5rem] glass tech-card team-card group overflow-hidden">
+                        <div class="absolute top-0 right-0 p-8 text-[8px] mono text-slate-800 font-black tracking-widest uppercase">0xHOS_06</div>
+                        <div class="text-[10px] text-slate-500 mono mb-8 tracking-[0.5em] uppercase font-bold">NODE_06</div>
+                        <h3 class="text-3xl font-black mb-8 tracking-tighter group-hover:text-emerald-400 transition-colors leading-tight uppercase">GUEST<br/>MANAGEMENT</h3>
+                        <div class="flex items-center justify-between border-t border-white/5 pt-8">
+                            <div class="flex items-center gap-4">
+                                <div class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_15px_#10b981]"></div>
+                                <span class="mono text-[11px] text-emerald-500/60 uppercase tracking-[0.3em] font-bold">Service_Mode</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="relative py-24 text-center border-t border-white/5 z-10 overflow-hidden bg-black/40">
+        <div class="absolute inset-0 opacity-[0.03]" style="background-image: linear-gradient(var(--neon-green) 1px, transparent 1px), linear-gradient(90deg, var(--neon-green) 1px, transparent 1px); background-size: 40px 40px;"></div>
+        <div class="max-w-7xl mx-auto px-10 flex flex-col items-center gap-10">
+            <div class="flex items-center gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-700">
+                <div class="flex flex-col items-center">
+                    <span class="text-[9px] mono uppercase tracking-[0.5em] mb-2 text-slate-500 text-nowrap">Project_State</span>
+                    <span class="text-[11px] mono text-emerald-400 font-black uppercase tracking-widest text-nowrap">Mission_Critical</span>
+                </div>
+                <div class="w-px h-10 bg-white/10"></div>
+                <div class="flex flex-col items-center">
+                    <span class="text-[9px] mono uppercase tracking-[0.5em] mb-2 text-slate-500 text-nowrap">Version_ID</span>
+                    <span class="text-[11px] mono text-white font-black uppercase tracking-widest text-nowrap">v2.0.26_STABLE</span>
+                </div>
+            </div>
+            
+            <div class="flex flex-col gap-4 text-center">
+                <p class="text-white text-3xl font-black tracking-[0.6em] uppercase text-nowrap">India Food Court</p>
+                <div class="flex items-center justify-center gap-6">
+                    <span class="h-px w-12 bg-emerald-500/30"></span>
+                    <p class="text-emerald-500/80 text-[11px] mono uppercase tracking-[1em] font-bold text-nowrap">Architect: Aniket Verma</p>
+                    <span class="h-px w-12 bg-emerald-500/30"></span>
+                </div>
+            </div>
+            
+            <p class="text-slate-600 text-[10px] mono uppercase tracking-[1.4em] opacity-40 text-nowrap">Gurugram // Phase_Trial_Run // 2026</p>
+        </div>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        const soundBtn = document.getElementById('sound-btn');
+        const initiateBtn = document.getElementById('initiate-btn');
+        const teamNodesSection = document.getElementById('team-nodes');
+        const modal = document.getElementById('protocol-modal');
+        const modalContainer = document.getElementById('modal-container');
+        const modalTitle = document.getElementById('modal-phase-title');
+        const modalSubLabel = document.getElementById('modal-sub-label');
+        const muteLines = [document.getElementById('mute-line'), document.getElementById('mute-line-2')];
+
+        // --- TABS LOGIC ---
+        let currentActiveTabIndex = 0;
+        const syncData = [
+            { title: "THE FRESH START", time: "12:00 PM", status: "READY_FOR_UPLINK", desc: "Mid-day cycle optimization and node readiness validation Required for 12:00 PM Cycle." },
+            { title: "THE PEAK HOUR", time: "06:00 PM", status: "LOAD_BALANCING_ACTIVE", desc: "Peak performance synchronization and ground operational load distribution." },
+            { title: "THE CLOSING", time: "10:00 PM", status: "REPORTING_PHASE", desc: "Final day cycle reporting and secure operational transition protocol." },
+            { title: "THE FEEDBACK", time: "ANYTIME", status: "CONTINUOUS_MONITORING", desc: "Ad-hoc guest insight collection and immediate operational feedback loop." }
+        ];
+
+        function switchTab(index) {
+            currentActiveTabIndex = index;
+            const btns = document.querySelectorAll('.tab-btn');
+            btns.forEach(b => b.classList.remove('active'));
+            btns[index].classList.add('active');
+
+            const title = document.getElementById('sync-title');
+            const desc = document.getElementById('sync-desc');
+            const status = document.getElementById('sync-status');
+            const execBtn = document.getElementById('execute-btn');
+            
+            title.innerText = syncData[index].title;
+            desc.innerText = syncData[index].desc;
+            status.innerText = `NODE_STATUS: ${syncData[index].status}`;
+
+            if (index === 1) { // Peak Hour Amber
+                execBtn.style.color = '#fbbf24'; execBtn.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                status.style.color = '#fbbf24';
+            } else {
+                execBtn.style.color = '#10b981'; execBtn.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                status.style.color = '#10b981';
+            }
+        }
+
+        function handleExecuteSync() {
+            const check1Title = document.querySelector('.check-title-1');
+            const check1Desc = document.querySelector('.check-desc-1');
+            const check2Title = document.querySelector('.check-title-2');
+            const check2Desc = document.querySelector('.check-desc-2');
+            const iconBgs = document.querySelectorAll('.protocol-icon-bg');
+            const icons1 = document.querySelector('.protocol-icon-1');
+            const icons2 = document.querySelector('.protocol-icon-2');
+
+            if (currentActiveTabIndex === 0) { // The Fresh Start
+                modalTitle.innerText = "THE FRESH START";
+                modalTitle.className = "text-4xl font-black uppercase tracking-tight";
+                modalSubLabel.innerText = "Protocol_Selection_Alpha";
+                modalSubLabel.style.color = "#10b981";
+                modalContainer.style.borderColor = "rgba(16, 185, 129, 0.3)";
+                check1Title.innerText = "Production CHECK";
+                check1Desc.innerText = "Verify kitchen readiness & output specs";
+                check2Title.innerText = "Stall CHECK";
+                check2Desc.innerText = "Audit individual vendor modules";
+                iconBgs.forEach(bg => bg.style.backgroundColor = "rgba(16, 185, 129, 0.1)");
+                icons1.style.stroke = "#10b981"; icons2.style.stroke = "#10b981";
+                modal.classList.add('active');
+            } else if (currentActiveTabIndex === 1) { // The Peak Hour
+                modalTitle.innerText = "THE PEAK HOUR";
+                modalTitle.className = "text-4xl font-black uppercase tracking-tight text-amber-500";
+                modalSubLabel.innerText = "Protocol_Intensity_High";
+                modalSubLabel.style.color = "#f59e0b";
+                modalContainer.style.borderColor = "rgba(245, 158, 11, 0.3)";
+                check1Title.innerText = "Production CHECK";
+                check1Desc.innerText = "Monitor throughput & order velocity";
+                check2Title.innerText = "Stall CHECK";
+                check2Desc.innerText = "Real-time traffic & queue management";
+                iconBgs.forEach(bg => bg.style.backgroundColor = "rgba(245, 158, 11, 0.1)");
+                icons1.style.stroke = "#f59e0b"; icons2.style.stroke = "#f59e0b";
+                modal.classList.add('active');
+            } else {
+                const status = document.getElementById('sync-status');
+                status.innerText = "NODE_STATUS: COLLECTION_INITIALIZED...";
+                setTimeout(() => status.innerText = `NODE_STATUS: ${syncData[currentActiveTabIndex].status}`, 2000);
+            }
+        }
+
+        function closeModal() { modal.classList.remove('active'); }
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+        // --- TIME HUD ---
+        function updateHUDTime() {
+            const now = new Date();
+            const hud = document.getElementById('current-time-hud');
+            if(hud) hud.innerText = now.toLocaleTimeString('en-GB', { hour12: false });
+        }
+        setInterval(updateHUDTime, 1000); updateHUDTime();
+
+        // --- AUDIO ENGINE ---
+        const audio = new Audio('https://assets.mixkit.co/music/preview/mixkit-indian-percussion-rhythm-loop-302.mp3');
+        audio.loop = true; audio.volume = 0.2; let isPlaying = false;
+        function toggleAudio() {
+            if (isPlaying) { audio.pause(); muteLines.forEach(l => l.style.display = 'block'); } 
+            else { audio.play().catch(e => {}); muteLines.forEach(l => l.style.display = 'none'); }
+            isPlaying = !isPlaying;
+        }
+        soundBtn.addEventListener('click', toggleAudio);
+        initiateBtn.addEventListener('click', () => {
+            if(!isPlaying) toggleAudio();
+            initiateBtn.innerHTML = "<span class='mono text-xs uppercase tracking-widest'>Protocol_Live...</span>";
+            initiateBtn.classList.replace('bg-emerald-600', 'bg-emerald-500');
+            teamNodesSection.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // --- STARFIELD ---
+        let width, height, stars = []; const starCount = 200;
+        class Star {
+            constructor() { this.reset(); }
+            reset() {
+                this.z = Math.random() * 2 + 0.5;
+                this.radius = Math.random() * Math.min(width, height) * 1.1 + 50;
+                this.angle = Math.random() * Math.PI * 2;
+                this.angularVelocity = (Math.random() * 0.0003 + 0.0001) * (this.z) * (Math.random() > 0.5 ? 1 : -1);
+                this.size = this.z * 0.6; this.opacity = (Math.random() * 0.3 + 0.1) * (this.z / 2);
+            }
+            update() { this.angle += this.angularVelocity; }
+            draw() {
+                const x = (width/2) + Math.cos(this.angle) * this.radius;
+                const y = (height/2) + Math.sin(this.angle) * this.radius;
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.beginPath(); ctx.arc(x, y, this.size, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+        function init() {
+            const dpr = window.devicePixelRatio || 1;
+            width = window.innerWidth; height = window.innerHeight;
+            canvas.width = width * dpr; canvas.height = height * dpr;
+            canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
+            ctx.scale(dpr, dpr); stars = [];
+            for (let i = 0; i < starCount; i++) stars.push(new Star());
+        }
+        let currentIdx = 0;
+        const carousel = document.getElementById('dash-carousel');
+        function updateCarousel() {
+            const items = document.querySelectorAll('.carousel-item');
+            items.forEach((item, idx) => {
+                item.classList.toggle('active', idx === currentIdx);
+                item.classList.toggle('inactive', idx !== currentIdx);
+            });
+            carousel.style.transform = `translate3d(0, -${currentIdx * 136}px, 0)`;
+        }
+        setInterval(() => { currentIdx = (currentIdx + 1) % 5; updateCarousel(); }, 4000); updateCarousel();
+        let targetX = 0, targetY = 0, curX = 0, curY = 0;
+        window.addEventListener('mousemove', (e) => {
+            targetX = (e.clientX - width/2) / (width/2); targetY = (e.clientY - height/2) / (height/2);
+        });
+        function animate() {
+            curX += (targetX - curX) * 0.05; curY += (targetY - curY) * 0.05;
+            ctx.clearRect(0, 0, width, height); stars.forEach(star => { star.update(); star.draw(); });
+            const neb1 = document.getElementById('neb-1'); const neb2 = document.getElementById('neb-2');
+            if(neb1) neb1.style.transform = `translate3d(${curX * 25}px, ${curY * 25}px, 0) scale(1.1)`;
+            if(neb2) neb2.style.transform = `translate3d(${-curX * 40}px, ${-curY * 40}px, 0) scale(1.05)`;
+            requestAnimationFrame(animate);
+        }
+        window.addEventListener('resize', init); init(); animate();
+    </script>
+</body>
+</html>
